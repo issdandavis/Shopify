@@ -1,9 +1,12 @@
+
 import { GoogleGenAI, Type, Chat, Modality, FunctionDeclaration } from "@google/genai";
 import { GeneratedPlanResponse, StepAdvice } from "../types.ts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const modelName = "gemini-3-flash-preview";
+const proModelName = "gemini-3-pro-preview";
+const mapsModelName = "gemini-2.5-flash";
 const ttsModelName = "gemini-2.5-flash-preview-tts";
 
 export const navigationFunctionDeclaration: FunctionDeclaration = {
@@ -121,12 +124,38 @@ export const getStepDetails = async (stepTitle: string, context: string, languag
    } as StepAdvice;
 };
 
+/**
+ * Enhanced Search Grounding
+ */
+export const getSearchGroundedInfo = async (query: string) => {
+  return await ai.models.generateContent({
+    model: modelName, // gemini-3-flash-preview for search
+    contents: query,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+};
+
+/**
+ * Enhanced Maps Grounding
+ */
+export const getMapsGroundedInfo = async (query: string) => {
+  return await ai.models.generateContent({
+    model: mapsModelName, // gemini-2.5-flash for maps
+    contents: query,
+    config: {
+      tools: [{ googleMaps: {} }, { googleSearch: {} }],
+    },
+  });
+};
+
 export const createShopifyChat = (language: string = 'English'): Chat => {
     return ai.chats.create({
-        model: modelName,
+        model: proModelName, // Using Pro for complex chatbot tasks
         config: {
-            tools: [{ functionDeclarations: [navigationFunctionDeclaration] }],
-            systemInstruction: `You are Issac Davis's Personal AI Architect. You are the digital double of the Fizzle's Engineering podcast creator. Assist with Aether Moor Games, GitHub workflow orchestration, and Lumo secure analytics. Respond to "Hey Issac" with immediate strategic assistance.`,
+            tools: [{ functionDeclarations: [navigationFunctionDeclaration] }, { googleSearch: {} }],
+            systemInstruction: `You are Issac Davis's Personal AI Architect. You are the digital double of the Fizzle's Engineering podcast creator. Assist with Aether Moor Games, GitHub workflow orchestration, and Lumo secure analytics. Respond to "Hey Issac" with immediate strategic assistance. You have access to Google Search for real-time information.`,
         }
     });
 };

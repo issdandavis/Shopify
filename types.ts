@@ -1,13 +1,28 @@
+
 export type VentureType = 'gaming' | 'commerce' | 'dropshipping' | 'inventory';
 
 export interface PaymentConfig {
   stripeActive: boolean;
   paypalActive: boolean;
   testMode: boolean;
+  publishableKey?: string;
+  secretKey?: string;
+  webhookSecret?: string;
   taxProvider: 'avalara' | 'taxjar' | 'native';
   supportedCurrencies: string[];
-  fraudProtection: boolean; // Stripe Radar
+  fraudProtection: boolean; 
+  fraudRules: {
+    blockProxy: boolean;
+    blockMismatch: boolean;
+    require3DS: boolean;
+  };
+  paymentMethods: {
+    applePay: boolean;
+    googlePay: boolean;
+    shopPay: boolean;
+  };
   subscriptionEnabled: boolean;
+  taxRates: { region: string; rate: number }[];
 }
 
 export interface MarketingConfig {

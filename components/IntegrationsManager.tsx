@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Project, IntegrationConfig, IntegrationSettings } from '../types.ts';
-import { ProtonIcon, ZapierIcon, NotionIcon, LinkIcon, LockIcon, XIcon, CheckCircleIcon, SparklesIcon, BoltIcon, InfoIcon } from './Icons.tsx';
+import { ProtonIcon, ZapierIcon, NotionIcon, LinkIcon, LockIcon, XIcon, CheckCircleIcon, SparklesIcon, BoltIcon, InfoIcon, CalendarIcon, TagIcon } from './Icons.tsx';
 import { protonService } from '../services/integrations/protonmail.ts';
 import { zapierService } from '../services/integrations/zapier.ts';
 import { notionService } from '../services/integrations/notion.ts';
@@ -13,7 +14,9 @@ interface IntegrationsManagerProps {
 
 export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ project, onUpdateProject, isEInkMode }) => {
   const [testing, setTesting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<Record<string, boolean>>({});
+  const [syncStats, setSyncStats] = useState<Record<string, any>>({});
 
   const integrations = project.integrations || {
     proton: { isActive: false },
@@ -43,6 +46,20 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
     if (success) updateConfig(key, { lastSync: Date.now() });
   };
 
+  const runProtonSync = async (type: 'contacts' | 'calendar') => {
+    setSyncing(`proton_${type}`);
+    try {
+      let result;
+      if (type === 'contacts') result = await protonService.syncContacts(integrations.proton);
+      else result = await protonService.syncCalendarEvents(integrations.proton);
+      setSyncStats(prev => ({ ...prev, [`proton_${type}`]: result }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   return (
     <div className={`p-6 md:p-8 animate-fade-in h-full overflow-y-auto ${isEInkMode ? 'grayscale' : ''}`}>
       <div className="mb-10">
@@ -51,16 +68,16 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
-        {/* Proton Mail Card */}
-        <section className={`p-8 bg-white rounded-[32px] border transition-all ${isEInkMode ? 'border-4 border-black shadow-none' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
+        {/* Proton Mail Card - Deep Integration */}
+        <section className={`p-8 bg-white rounded-[32px] border transition-all flex flex-col ${isEInkMode ? 'border-4 border-black shadow-none' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
           <div className="flex items-start justify-between mb-8">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-[#6D4AFF]">
                 <ProtonIcon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-black text-lg">Proton Mail</h3>
-                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Secure Business Email</p>
+                <h3 className="font-black text-lg">Proton Ecosystem</h3>
+                <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Lumo Security Kernel</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -77,7 +94,7 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
                 value={integrations.proton.endpoint || ''} 
                 onChange={(e) => updateConfig('proton', { endpoint: e.target.value })}
                 placeholder="https://localhost:1143/v1"
-                className={`w-full px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-purple-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
+                className={`w-full bg-gray-50 px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-purple-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
               />
             </div>
             <div className="space-y-1">
@@ -87,7 +104,7 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
                 value={integrations.proton.apiKey || ''} 
                 onChange={(e) => updateConfig('proton', { apiKey: e.target.value })}
                 placeholder="pm_..."
-                className={`w-full px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-purple-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
+                className={`w-full bg-gray-50 px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-purple-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
               />
             </div>
           </div>
@@ -95,10 +112,41 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
           <button 
             onClick={() => testConnection('proton')}
             disabled={testing === 'proton'}
-            className={`w-full py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${testResult.proton ? 'bg-green-50 text-green-700' : 'bg-gray-900 text-white'}`}
+            className={`w-full py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all active:scale-95 mb-6 ${testResult.proton ? 'bg-green-50 text-green-700' : 'bg-gray-900 text-white'}`}
           >
-            {testing === 'proton' ? 'Connecting...' : testResult.proton ? <><CheckCircleIcon className="w-4 h-4" checked /> Connected</> : <><LockIcon className="w-4 h-4" /> Secure Connection</>}
+            {testing === 'proton' ? 'Connecting...' : testResult.proton ? <><CheckCircleIcon className="w-4 h-4" checked /> Encrypted Connection Active</> : <><LockIcon className="w-4 h-4" /> Secure Handshake</>}
           </button>
+
+          {testResult.proton && (
+            <div className="pt-6 border-t border-gray-100 space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <TagIcon className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-bold text-gray-600">Contact Management</span>
+                    </div>
+                    <button 
+                      onClick={() => runProtonSync('contacts')}
+                      disabled={syncing === 'proton_contacts'}
+                      className="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded-lg uppercase hover:bg-purple-100 transition-colors"
+                    >
+                      {syncing === 'proton_contacts' ? 'Syncing...' : syncStats.proton_contacts ? `Updated (${syncStats.proton_contacts.count})` : 'Sync Contacts'}
+                    </button>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CalendarIcon className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-bold text-gray-600">Merchant Calendar</span>
+                    </div>
+                    <button 
+                      onClick={() => runProtonSync('calendar')}
+                      disabled={syncing === 'proton_calendar'}
+                      className="px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded-lg uppercase hover:bg-purple-100 transition-colors"
+                    >
+                      {syncing === 'proton_calendar' ? 'Linking...' : syncStats.proton_calendar ? `Linked (${syncStats.proton_calendar.eventsSynced} events)` : 'Sync Calendar'}
+                    </button>
+                </div>
+            </div>
+          )}
         </section>
 
         {/* Zapier Card */}
@@ -127,7 +175,7 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
                 value={integrations.zapier.endpoint || ''} 
                 onChange={(e) => updateConfig('zapier', { endpoint: e.target.value })}
                 placeholder="https://hooks.zapier.com/..."
-                className={`w-full px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-orange-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
+                className={`w-full bg-gray-50 px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-orange-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
               />
             </div>
           </div>
@@ -167,7 +215,7 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
                 value={integrations.notion.apiKey || ''} 
                 onChange={(e) => updateConfig('notion', { apiKey: e.target.value })}
                 placeholder="secret_..."
-                className={`w-full px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-gray-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
+                className={`w-full bg-gray-50 px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-gray-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
               />
             </div>
             <div className="space-y-1">
@@ -177,7 +225,7 @@ export const IntegrationsManager: React.FC<IntegrationsManagerProps> = ({ projec
                 value={integrations.notion.databaseId || ''} 
                 onChange={(e) => updateConfig('notion', { databaseId: e.target.value })}
                 placeholder="32-char hex string"
-                className={`w-full px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-gray-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
+                className={`w-full bg-gray-50 px-4 py-3 text-sm rounded-xl border focus:ring-2 focus:ring-gray-200 outline-none transition-all ${isEInkMode ? 'border-2 border-black' : 'border-gray-100'}`}
               />
             </div>
           </div>

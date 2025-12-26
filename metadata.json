@@ -1,5 +1,7 @@
 {
   "name": "ShopGuide AI",
   "description": "An intelligent Shopify onboarding assistant that breaks down complex e-commerce tasks into actionable, AI-generated step-by-step project plans tailored for beginners.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
